@@ -58,7 +58,18 @@ export function Layout({ children }: LayoutProps) {
                     : "text-gray-300 hover:bg-gray-700"
                 )}
               >
-                Карточки
+                Слова
+              </Link>
+              <Link
+                href="/irregular-verbs"
+                className={clsx(
+                  "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  pathname === "/irregular-verbs"
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-300 hover:bg-gray-700"
+                )}
+              >
+                Глаголы
               </Link>
               <Link
                 href="/test"
@@ -69,7 +80,18 @@ export function Layout({ children }: LayoutProps) {
                     : "text-gray-300 hover:bg-gray-700"
                 )}
               >
-                Тест
+                Тест (слова)
+              </Link>
+              <Link
+                href="/test-irregular-verbs"
+                className={clsx(
+                  "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  pathname === "/test-irregular-verbs"
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-300 hover:bg-gray-700"
+                )}
+              >
+                Тест (глаголы)
               </Link>
               <Link
                 href="/stats"

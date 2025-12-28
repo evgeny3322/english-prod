@@ -3,52 +3,78 @@ import { Word } from "./db";
 export interface ParsedWord {
   word: string;
   translation: string;
+  transcription?: string;
   tags: string[];
 }
 
 /**
- * Парсит строку в формате "word - translation" или "word;translation"
+ * Парсит строку в формате "word - translation" или "word - translation [transcription]" или "word;translation;transcription"
  */
 export function parseWordLine(line: string, defaultTags: string[] = []): ParsedWord | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
 
+  // Пробуем формат с транскрипцией в квадратных скобках: "word - translation [transcription]"
+  const bracketMatch = trimmed.match(/^(.+?)\s*-\s*(.+?)\s*\[(.+?)\]$/);
+  if (bracketMatch) {
+    return {
+      word: bracketMatch[1].trim(),
+      translation: bracketMatch[2].trim(),
+      transcription: bracketMatch[3].trim(),
+      tags: [...defaultTags],
+    };
+  }
+
   // Пробуем разделитель " - "
   let parts = trimmed.split(/\s*-\s*/);
-  if (parts.length === 2) {
+  if (parts.length >= 2) {
+    // Если 3 части: word - transcription - translation
+    if (parts.length === 3) {
+      return {
+        word: parts[0].trim(),
+        transcription: parts[1].trim(),
+        translation: parts[2].trim(),
+        tags: [...defaultTags],
+      };
+    }
+    // Если 2 части: word - translation
     return {
       word: parts[0].trim(),
       translation: parts[1].trim(),
+      transcription: undefined,
       tags: [...defaultTags],
     };
   }
 
   // Пробуем разделитель ";"
   parts = trimmed.split(";");
-  if (parts.length === 2) {
+  if (parts.length >= 2) {
     return {
       word: parts[0].trim(),
       translation: parts[1].trim(),
+      transcription: parts[2]?.trim() || undefined,
       tags: [...defaultTags],
     };
   }
 
   // Пробуем разделитель ","
   parts = trimmed.split(",");
-  if (parts.length === 2) {
+  if (parts.length >= 2) {
     return {
       word: parts[0].trim(),
       translation: parts[1].trim(),
+      transcription: parts[2]?.trim() || undefined,
       tags: [...defaultTags],
     };
   }
 
   // Если один разделитель не сработал, пробуем табуляцию
   parts = trimmed.split(/\t/);
-  if (parts.length === 2) {
+  if (parts.length >= 2) {
     return {
       word: parts[0].trim(),
       translation: parts[1].trim(),
+      transcription: parts[2]?.trim() || undefined,
       tags: [...defaultTags],
     };
   }
@@ -90,12 +116,14 @@ export function parseCSV(text: string, defaultTags: string[] = []): ParsedWord[]
     if (parts.length >= 2) {
       const word = parts[0];
       const translation = parts[1];
-      const tags = parts.length > 2 ? parts.slice(2).filter(Boolean) : defaultTags;
+      const transcription = parts[2] || undefined;
+      const tags = parts.length > 3 ? parts.slice(3).filter(Boolean) : defaultTags;
 
       if (word && translation) {
         words.push({
           word,
           translation,
+          transcription: transcription?.trim() || undefined,
           tags: [...defaultTags, ...tags],
         });
       }

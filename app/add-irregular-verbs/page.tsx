@@ -3,20 +3,20 @@
 import { useState, useRef, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useWordStore } from "@/lib/store";
-import { parseText, parseCSV, validateWords, ParsedWord } from "@/lib/parser";
+import { useIrregularVerbStore } from "@/lib/irregularVerbsStore";
+import { parseIrregularVerbsText, validateIrregularVerbs, ParsedIrregularVerb } from "@/lib/irregularVerbsParser";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 
-export default function AddPage() {
+export default function AddIrregularVerbsPage() {
   const router = useRouter();
-  const { words, addWord, addWords } = useWordStore();
+  const { verbs, addVerb, addVerbs } = useIrregularVerbStore();
   const [mode, setMode] = useState<"manual" | "import">("manual");
-  const [word, setWord] = useState("");
+  const [infinitive, setInfinitive] = useState("");
+  const [pastSimple, setPastSimple] = useState("");
+  const [pastParticiple, setPastParticiple] = useState("");
   const [translation, setTranslation] = useState("");
-  const [transcription, setTranscription] = useState("");
-  const [tags, setTags] = useState("");
   const [importText, setImportText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -27,52 +27,46 @@ export default function AddPage() {
     e.preventDefault();
     setErrors([]);
 
-    if (!word.trim() || !translation.trim()) {
+    if (!infinitive.trim() || !pastSimple.trim() || !pastParticiple.trim() || !translation.trim()) {
       setErrors(["Заполните все обязательные поля"]);
       return;
     }
 
-    const tagArray = tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-
     try {
-      await addWord({
-        word: word.trim(),
+      await addVerb({
+        infinitive: infinitive.trim(),
+        pastSimple: pastSimple.trim(),
+        pastParticiple: pastParticiple.trim(),
         translation: translation.trim(),
-        transcription: transcription.trim() || undefined,
-        tags: tagArray,
         box: 1,
         nextReviewDate: Date.now(),
       });
 
-      setWord("");
+      setInfinitive("");
+      setPastSimple("");
+      setPastParticiple("");
       setTranslation("");
-      setTranscription("");
-      setTags("");
       router.push("/welcome");
     } catch (error) {
-      setErrors(["Ошибка при добавлении слова"]);
+      setErrors(["Ошибка при добавлении глагола"]);
       console.error(error);
     }
   };
 
   const handleFileRead = async (file: File) => {
     const text = await file.text();
-    const isCSV = file.name.endsWith(".csv");
-    const parsed = isCSV ? parseCSV(text) : parseText(text);
+    const parsed = parseIrregularVerbsText(text);
     
     if (parsed.length === 0) {
       setErrors(["Не удалось распарсить файл. Проверьте формат."]);
       return;
     }
 
-    const { valid, duplicates, invalid } = validateWords(parsed, words);
+    const { valid, duplicates, invalid } = validateIrregularVerbs(parsed, verbs);
 
     if (valid.length === 0) {
       setErrors([
-        "Нет новых слов для добавления",
+        "Нет новых глаголов для добавления",
         duplicates.length > 0 ? `${duplicates.length} дубликатов` : "",
         invalid.length > 0 ? `${invalid.length} невалидных записей` : "",
       ].filter(Boolean));
@@ -88,28 +82,30 @@ export default function AddPage() {
     }
 
     try {
-      const wordsToAdd = valid.map((w) => ({
-        word: w.word,
-        translation: w.translation,
-        transcription: w.transcription,
-        tags: w.tags,
+      const verbsToAdd = valid.map((v) => ({
+        infinitive: v.infinitive,
+        pastSimple: v.pastSimple,
+        pastParticiple: v.pastParticiple,
+        translation: v.translation,
         box: 1,
         nextReviewDate: Date.now(),
       }));
 
-      await addWords(wordsToAdd);
+      await addVerbs(verbsToAdd);
       setImportText("");
       router.push("/welcome");
     } catch (error) {
-      setErrors(["Ошибка при добавлении слов"]);
+      setErrors(["Ошибка при добавлении глаголов"]);
       console.error(error);
     }
   };
 
   const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && (file.name.endsWith(".txt"))) {
       handleFileRead(file);
+    } else {
+      setErrors(["Поддерживаются только файлы .txt"]);
     }
   };
 
@@ -118,10 +114,10 @@ export default function AddPage() {
     setIsDragging(false);
 
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith(".csv") || file.name.endsWith(".txt"))) {
+    if (file && file.name.endsWith(".txt")) {
       handleFileRead(file);
     } else {
-      setErrors(["Поддерживаются только файлы .csv и .txt"]);
+      setErrors(["Поддерживаются только файлы .txt"]);
     }
   };
 
@@ -143,18 +139,18 @@ export default function AddPage() {
       return;
     }
 
-    const parsed = parseText(importText);
+    const parsed = parseIrregularVerbsText(importText);
     
     if (parsed.length === 0) {
-      setErrors(["Не удалось распарсить текст. Используйте формат: слово - перевод"]);
+      setErrors(["Не удалось распарсить текст. Используйте формат: infinitive - pastSimple - pastParticiple - translation"]);
       return;
     }
 
-    const { valid, duplicates, invalid } = validateWords(parsed, words);
+    const { valid, duplicates, invalid } = validateIrregularVerbs(parsed, verbs);
 
     if (valid.length === 0) {
       setErrors([
-        "Нет новых слов для добавления",
+        "Нет новых глаголов для добавления",
         duplicates.length > 0 ? `${duplicates.length} дубликатов` : "",
         invalid.length > 0 ? `${invalid.length} невалидных записей` : "",
       ].filter(Boolean));
@@ -170,20 +166,20 @@ export default function AddPage() {
     }
 
     try {
-      const wordsToAdd = valid.map((w) => ({
-        word: w.word,
-        translation: w.translation,
-        transcription: w.transcription,
-        tags: w.tags,
+      const verbsToAdd = valid.map((v) => ({
+        infinitive: v.infinitive,
+        pastSimple: v.pastSimple,
+        pastParticiple: v.pastParticiple,
+        translation: v.translation,
         box: 1,
         nextReviewDate: Date.now(),
       }));
 
-      await addWords(wordsToAdd);
+      await addVerbs(verbsToAdd);
       setImportText("");
       router.push("/welcome");
     } catch (error) {
-      setErrors(["Ошибка при добавлении слов"]);
+      setErrors(["Ошибка при добавлении глаголов"]);
       console.error(error);
     }
   };
@@ -202,7 +198,7 @@ export default function AddPage() {
 
         <div className="bg-gray-800 rounded-lg shadow-lg p-6">
           <h1 className="text-2xl font-bold mb-6 text-white">
-            Добавить слова
+            Добавить неправильные глаголы
           </h1>
 
           <div className="flex gap-4 mb-6">
@@ -234,12 +230,12 @@ export default function AddPage() {
             <form onSubmit={handleManualSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-300">
-                  Слово (EN)
+                  Infinitive (Инфинитив)
                 </label>
                 <Input
-                  value={word}
-                  onChange={(e) => setWord(e.target.value)}
-                  placeholder="hello"
+                  value={infinitive}
+                  onChange={(e) => setInfinitive(e.target.value)}
+                  placeholder="go"
                   required
                   autoFocus
                 />
@@ -247,55 +243,54 @@ export default function AddPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-300">
-                  Перевод (RU)
+                  Past Simple
                 </label>
                 <Input
-                  value={translation}
-                  onChange={(e) => setTranslation(e.target.value)}
-                  placeholder="привет"
+                  value={pastSimple}
+                  onChange={(e) => setPastSimple(e.target.value)}
+                  placeholder="went"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-300">
-                  Транскрипция (RU, опционально)
+                  Past Participle
                 </label>
                 <Input
-                  value={transcription}
-                  onChange={(e) => setTranscription(e.target.value)}
-                  placeholder="хэллоу"
+                  value={pastParticiple}
+                  onChange={(e) => setPastParticiple(e.target.value)}
+                  placeholder="gone"
+                  required
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Произношение на русском языке (например: &quot;хэллоу&quot; для &quot;hello&quot;)
-                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-300">
-                  Теги (через запятую)
+                  Перевод
                 </label>
                 <Input
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  placeholder="базовые, приветствие"
+                  value={translation}
+                  onChange={(e) => setTranslation(e.target.value)}
+                  placeholder="идти"
+                  required
                 />
               </div>
 
               <Button type="submit" variant="primary" className="w-full">
-                Добавить слово
+                Добавить глагол
               </Button>
             </form>
           ) : (
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-300">
-                  Вставьте текст (формат: слово - транскрипция - перевод или слово - перевод [транскрипция])
+                  Вставьте текст (формат: infinitive - pastSimple - pastParticiple - translation)
                 </label>
                 <Textarea
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}
-                  placeholder="hello - привет&#10;world - мир&#10;good - хорошо"
+                  placeholder="go - went - gone - идти&#10;see - saw - seen - видеть&#10;take - took - taken - брать"
                   rows={8}
                 />
                 <Button
@@ -330,12 +325,12 @@ export default function AddPage() {
                 }`}
               >
                 <p className="text-gray-400 mb-4">
-                  Перетащите файл .csv или .txt сюда
+                  Перетащите файл .txt сюда
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,.txt"
+                  accept=".txt"
                   onChange={handleFileInput}
                   className="hidden"
                 />

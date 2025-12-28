@@ -5,25 +5,24 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { useDrag } from "react-use-gesture";
-import { useWordStore } from "@/lib/store";
-import { Word } from "@/lib/db";
+import { useIrregularVerbStore } from "@/lib/irregularVerbsStore";
+import { IrregularVerb } from "@/lib/db";
 import { Button } from "@/components/ui/Button";
 import { Layout } from "@/components/Layout";
-import { TagFilter } from "@/components/TagFilter";
 import { Loader } from "@/components/ui/Loader";
 import { tts } from "@/lib/tts";
 import { sounds } from "@/lib/sounds";
 
-export default function StudyPage() {
+export default function IrregularVerbsPage() {
   const router = useRouter();
-  const { words, loadWords, updateWord } = useWordStore();
+  const { verbs, loadVerbs, updateVerb } = useIrregularVerbStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [sessionWords, setSessionWords] = useState<Word[]>([]);
+  const [sessionVerbs, setSessionVerbs] = useState<IrregularVerb[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showForm, setShowForm] = useState<"infinitive" | "pastSimple" | "pastParticiple">("infinitive");
 
-  // Свайп-жесты для карточки - должны быть объявлены до любых условных return
+  // Свайп-жесты для карточки
   const cardRef = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
@@ -31,10 +30,10 @@ export default function StudyPage() {
 
   const handleAnswer = useCallback(
     async (know: boolean) => {
-      if (sessionWords.length === 0) return;
+      if (sessionVerbs.length === 0) return;
 
-      const currentWord = sessionWords[currentIndex];
-      if (!currentWord || !currentWord.id) return;
+      const currentVerb = sessionVerbs[currentIndex];
+      if (!currentVerb || !currentVerb.id) return;
 
       // Воспроизводим звук
       if (know) {
@@ -44,36 +43,32 @@ export default function StudyPage() {
       }
 
       const now = Date.now();
-      let newBox = currentWord.box;
+      let newBox = currentVerb.box;
       let nextReview: number;
 
       if (know) {
-        // Правильный ответ: увеличиваем box
-        newBox = Math.min(currentWord.box + 1, 5);
-        // Интервалы: 1ч -> 1 день -> 3 дня -> 7 дней -> 30 дней
+        newBox = Math.min(currentVerb.box + 1, 5);
         const intervals = [3600000, 86400000, 259200000, 604800000, 2592000000];
         nextReview = now + intervals[newBox - 1];
       } else {
-        // Неправильный ответ: сбрасываем в box 1
         newBox = 1;
-        nextReview = now + 3600000; // 1 час
+        nextReview = now + 3600000;
       }
 
-      await updateWord(currentWord.id, {
+      await updateVerb(currentVerb.id, {
         box: newBox,
         nextReviewDate: nextReview,
       });
 
-      // Переходим к следующей карточке
-      if (currentIndex < sessionWords.length - 1) {
+      if (currentIndex < sessionVerbs.length - 1) {
         setCurrentIndex(currentIndex + 1);
         setIsFlipped(false);
+        setShowForm("infinitive");
       } else {
-        // Сессия завершена
         router.push("/welcome");
       }
     },
-    [currentIndex, sessionWords, updateWord, router]
+    [currentIndex, sessionVerbs, updateVerb, router]
   );
 
   const bind = useDrag(
@@ -84,10 +79,8 @@ export default function StudyPage() {
       if (trigger) {
         cancel();
         if (xDir > 0) {
-          // Свайп вправо - знаю
           handleAnswer(true);
         } else {
-          // Свайп влево - не знаю
           handleAnswer(false);
         }
         x.set(0);
@@ -103,33 +96,24 @@ export default function StudyPage() {
   );
 
   useEffect(() => {
-    loadWords().then(() => setIsLoading(false));
-  }, [loadWords]);
+    loadVerbs().then(() => setIsLoading(false));
+  }, [loadVerbs]);
 
   useEffect(() => {
-    if (words.length === 0 && !isLoading) {
+    if (verbs.length === 0 && !isLoading) {
       return;
     }
-    // Фильтруем слова, которые нужно повторить (nextReviewDate <= сейчас)
     const now = Date.now();
-    let wordsToReview = words.filter((w) => w.nextReviewDate <= now);
-    // Если нет слов для повторения, показываем все
-    if (wordsToReview.length === 0) {
-      wordsToReview = words;
+    let verbsToReview = verbs.filter((v) => v.nextReviewDate <= now);
+    if (verbsToReview.length === 0) {
+      verbsToReview = verbs;
     }
     
-    // Применяем фильтр по тегам
-    let filteredWords = wordsToReview;
-    if (selectedTags.length > 0) {
-      filteredWords = wordsToReview.filter((word) =>
-        word.tags.some((tag) => selectedTags.includes(tag))
-      );
-    }
-    
-    setSessionWords(filteredWords);
+    setSessionVerbs(verbsToReview);
     setCurrentIndex(0);
     setIsFlipped(false);
-  }, [words, isLoading, selectedTags]);
+    setShowForm("infinitive");
+  }, [verbs, isLoading]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -149,29 +133,42 @@ export default function StudyPage() {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [isFlipped, handleAnswer]);
 
+  const handleFlip = () => {
+    setIsFlipped(!isFlipped);
+    sounds.playFlip();
+  };
+
+  const handleSpeak = () => {
+    if (sessionVerbs.length === 0) return;
+    const currentVerb = sessionVerbs[currentIndex];
+    if (currentVerb) {
+      tts.speak(currentVerb.infinitive, "en-US");
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
-          <Loader size="lg" text="Загрузка слов..." />
+          <Loader size="lg" text="Загрузка глаголов..." />
         </div>
       </Layout>
     );
   }
 
-  if (sessionWords.length === 0) {
+  if (sessionVerbs.length === 0) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-screen px-4">
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold text-white">
-              Нет слов для изучения
+              Нет неправильных глаголов для изучения
             </h2>
             <p className="text-gray-400">
-              Добавьте слова, чтобы начать обучение
+              Добавьте неправильные глаголы, чтобы начать обучение
             </p>
-            <Link href="/add">
-              <Button variant="primary">Добавить слова</Button>
+            <Link href="/add-irregular-verbs">
+              <Button variant="primary">Добавить глаголы</Button>
             </Link>
           </div>
         </div>
@@ -179,38 +176,18 @@ export default function StudyPage() {
     );
   }
 
-  const handleSpeak = () => {
-    if (sessionWords.length === 0) return;
-    const currentWord = sessionWords[currentIndex];
-    if (currentWord) {
-      tts.speak(currentWord.word, "en-US");
-    }
-  };
-
-  const handleFlip = () => {
-    setIsFlipped(!isFlipped);
-    sounds.playFlip();
-  };
-
-  const currentWord = sessionWords[currentIndex];
-  const progress = ((currentIndex + 1) / sessionWords.length) * 100;
+  const currentVerb = sessionVerbs[currentIndex];
+  const progress = ((currentIndex + 1) / sessionVerbs.length) * 100;
 
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-8 px-4">
         <div className="max-w-2xl mx-auto">
-          {/* Tag Filter */}
-          <TagFilter
-            words={words}
-            selectedTags={selectedTags}
-            onTagsChange={setSelectedTags}
-          />
-
           {/* Progress Bar */}
           <div className="mb-6">
             <div className="flex justify-between text-sm text-gray-400 mb-2">
               <span>
-                {currentIndex + 1} / {sessionWords.length}
+                {currentIndex + 1} / {sessionVerbs.length}
               </span>
               <span>{Math.round(progress)}%</span>
             </div>
@@ -232,7 +209,7 @@ export default function StudyPage() {
                 exit={{ opacity: 0, rotateY: 90 }}
                 transition={{ duration: 0.3 }}
                 className="relative w-full"
-                style={{ height: "400px", transformStyle: "preserve-3d" }}
+                style={{ height: "450px", transformStyle: "preserve-3d" }}
               >
                 <motion.div
                   ref={cardRef}
@@ -256,13 +233,17 @@ export default function StudyPage() {
                       WebkitBackfaceVisibility: "hidden",
                     }}
                   >
-                    <div className="text-center">
-                      <p className="text-sm text-gray-400 mb-2">
-                        Слово
+                    <div className="text-center w-full">
+                      <p className="text-sm text-gray-400 mb-4">
+                        {showForm === "infinitive" ? "Инфинитив" : showForm === "pastSimple" ? "Past Simple" : "Past Participle"}
                       </p>
-                      <div className="flex items-center justify-center gap-3 mb-2">
+                      <div className="flex items-center justify-center gap-3 mb-4">
                         <h2 className="text-4xl font-bold text-white">
-                          {currentWord.word}
+                          {showForm === "infinitive" 
+                            ? currentVerb.infinitive 
+                            : showForm === "pastSimple" 
+                            ? currentVerb.pastSimple 
+                            : currentVerb.pastParticiple}
                         </h2>
                         {tts.isAvailable() && (
                           <button
@@ -271,17 +252,53 @@ export default function StudyPage() {
                               handleSpeak();
                             }}
                             className="p-2 rounded-full bg-indigo-900 hover:bg-indigo-800 transition-colors"
-                            aria-label="Озвучить слово"
+                            aria-label="Озвучить"
                           >
                             🔊
                           </button>
                         )}
                       </div>
-                      {currentWord.transcription && (
-                        <p className="text-lg text-indigo-300 mb-2">
-                          [{currentWord.transcription}]
-                        </p>
-                      )}
+                      <div className="flex gap-2 justify-center mt-6">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowForm("infinitive");
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                            showForm === "infinitive" 
+                              ? "bg-indigo-600 text-white" 
+                              : "bg-gray-700 text-gray-300"
+                          }`}
+                        >
+                          Infinitive
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowForm("pastSimple");
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                            showForm === "pastSimple" 
+                              ? "bg-indigo-600 text-white" 
+                              : "bg-gray-700 text-gray-300"
+                          }`}
+                        >
+                          Past Simple
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowForm("pastParticiple");
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                            showForm === "pastParticiple" 
+                              ? "bg-indigo-600 text-white" 
+                              : "bg-gray-700 text-gray-300"
+                          }`}
+                        >
+                          Past Participle
+                        </button>
+                      </div>
                       <p className="text-sm text-gray-500 mt-4">
                         Нажмите, чтобы перевернуть
                       </p>
@@ -297,23 +314,26 @@ export default function StudyPage() {
                       transform: "rotateY(180deg)",
                     }}
                   >
-                    <div className="text-center">
-                      <p className="text-sm text-indigo-200 mb-2">Перевод</p>
-                      <h2 className="text-4xl font-bold text-white">
-                        {currentWord.translation}
-                      </h2>
-                      {currentWord.tags.length > 0 && (
-                        <div className="mt-4 flex flex-wrap justify-center gap-2">
-                          {currentWord.tags.map((tag, i) => (
-                            <span
-                              key={i}
-                              className="px-2 py-1 bg-indigo-500 text-white text-xs rounded"
-                            >
-                              {tag}
-                            </span>
-                          ))}
+                    <div className="text-center w-full">
+                      <p className="text-sm text-indigo-200 mb-4">Перевод и все формы</p>
+                      <div className="space-y-3 mb-4">
+                        <div>
+                          <p className="text-xs text-indigo-300 mb-1">Infinitive</p>
+                          <p className="text-2xl font-bold text-white">{currentVerb.infinitive}</p>
                         </div>
-                      )}
+                        <div>
+                          <p className="text-xs text-indigo-300 mb-1">Past Simple</p>
+                          <p className="text-2xl font-bold text-white">{currentVerb.pastSimple}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-indigo-300 mb-1">Past Participle</p>
+                          <p className="text-2xl font-bold text-white">{currentVerb.pastParticiple}</p>
+                        </div>
+                        <div className="pt-2 border-t border-indigo-600">
+                          <p className="text-xs text-indigo-300 mb-1">Перевод</p>
+                          <p className="text-xl font-semibold text-white">{currentVerb.translation}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </motion.div>

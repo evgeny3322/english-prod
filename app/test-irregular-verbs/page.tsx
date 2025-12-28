@@ -4,20 +4,23 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useWordStore } from "@/lib/store";
-import { Word } from "@/lib/db";
+import { useIrregularVerbStore } from "@/lib/irregularVerbsStore";
+import { IrregularVerb } from "@/lib/db";
 import { Button } from "@/components/ui/Button";
 import { Layout } from "@/components/Layout";
 import { Loader } from "@/components/ui/Loader";
 import { tts } from "@/lib/tts";
 import { sounds } from "@/lib/sounds";
 
-export default function TestPage() {
+type QuestionType = "pastSimple" | "pastParticiple";
+
+export default function TestIrregularVerbsPage() {
   const router = useRouter();
-  const { words, loadWords, updateWord } = useWordStore();
+  const { verbs, loadVerbs, updateVerb } = useIrregularVerbStore();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [sessionWords, setSessionWords] = useState<Word[]>([]);
+  const [sessionVerbs, setSessionVerbs] = useState<IrregularVerb[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [questionType, setQuestionType] = useState<QuestionType>("pastSimple");
   const [options, setOptions] = useState<string[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -26,24 +29,24 @@ export default function TestPage() {
   const sessionInitializedRef = useRef(false);
 
   useEffect(() => {
-    loadWords().then(() => setIsLoading(false));
-  }, [loadWords]);
+    loadVerbs().then(() => setIsLoading(false));
+  }, [loadVerbs]);
 
   useEffect(() => {
-    if (words.length === 0 && !isLoading) {
-      setSessionWords([]);
+    if (verbs.length === 0 && !isLoading) {
+      setSessionVerbs([]);
       setCurrentIndex(0);
       isTestActiveRef.current = false;
       sessionInitializedRef.current = false;
       return;
     }
 
-    // Если тест уже начался, обновляем только слова в сессии, не пересоздавая её
+    // Если тест уже начался, обновляем только глаголы в сессии, не пересоздавая её
     if (isTestActiveRef.current && sessionInitializedRef.current) {
-      setSessionWords((prevSessionWords) => {
-        return prevSessionWords.map((sessionWord) => {
-          const updatedWord = words.find((w) => w.id === sessionWord.id);
-          return updatedWord || sessionWord;
+      setSessionVerbs((prevSessionVerbs) => {
+        return prevSessionVerbs.map((sessionVerb) => {
+          const updatedVerb = verbs.find((v) => v.id === sessionVerb.id);
+          return updatedVerb || sessionVerb;
         });
       });
       return;
@@ -51,35 +54,51 @@ export default function TestPage() {
 
     // Инициализация сессии только при первой загрузке или когда тест не активен
     const now = Date.now();
-    const wordsToReview = words.filter((w) => w.nextReviewDate <= now);
-    const wordsForSession = wordsToReview.length > 0 ? wordsToReview : words;
+    const verbsToReview = verbs.filter((v) => v.nextReviewDate <= now);
+    const verbsForSession = verbsToReview.length > 0 ? verbsToReview : verbs;
     
-    // Перемешиваем слова для теста
-    const shuffled = [...wordsForSession].sort(() => Math.random() - 0.5);
-    setSessionWords(shuffled);
+    // Перемешиваем глаголы для теста
+    const shuffled = [...verbsForSession].sort(() => Math.random() - 0.5);
+    setSessionVerbs(shuffled);
     setCurrentIndex(0);
     setSelectedAnswer(null);
     setShowResult(false);
+    // Случайно выбираем тип вопроса
+    setQuestionType(Math.random() > 0.5 ? "pastSimple" : "pastParticiple");
     sessionInitializedRef.current = true;
-  }, [words, isLoading]);
+  }, [verbs, isLoading]);
 
-  // Генерируем варианты ответов для текущего слова
+  // Генерируем варианты ответов для текущего глагола
   useEffect(() => {
-    if (sessionWords.length === 0) return;
+    if (sessionVerbs.length === 0) return;
 
-    const currentWord = sessionWords[currentIndex];
-    if (!currentWord) return;
+    const currentVerb = sessionVerbs[currentIndex];
+    if (!currentVerb) return;
 
-    // Собираем все переводы кроме текущего
-    const otherTranslations = words
-      .filter((w) => w.id !== currentWord.id && w.translation !== currentWord.translation)
-      .map((w) => w.translation);
+    // Определяем правильный ответ в зависимости от типа вопроса
+    const correctAnswer = questionType === "pastSimple" 
+      ? currentVerb.pastSimple 
+      : currentVerb.pastParticiple;
+
+    // Собираем все формы кроме текущего глагола
+    const otherForms: string[] = [];
+    verbs.forEach((v) => {
+      if (v.id !== currentVerb.id) {
+        if (questionType === "pastSimple") {
+          otherForms.push(v.pastSimple);
+        } else {
+          otherForms.push(v.pastParticiple);
+        }
+      }
+    });
 
     // Выбираем 3 случайных неправильных ответа
     const wrongAnswers: string[] = [];
-    const shuffled = [...otherTranslations].sort(() => Math.random() - 0.5);
+    const shuffled = [...otherForms].sort(() => Math.random() - 0.5);
     for (let i = 0; i < Math.min(3, shuffled.length); i++) {
-      wrongAnswers.push(shuffled[i]);
+      if (shuffled[i] && shuffled[i] !== correctAnswer) {
+        wrongAnswers.push(shuffled[i]);
+      }
     }
 
     // Если недостаточно неправильных ответов, добавляем заглушки
@@ -88,31 +107,32 @@ export default function TestPage() {
     }
 
     // Смешиваем правильный и неправильные ответы
-    const allOptions = [currentWord.translation, ...wrongAnswers].sort(
+    const allOptions = [correctAnswer, ...wrongAnswers].sort(
       () => Math.random() - 0.5
     );
     setOptions(allOptions);
     setSelectedAnswer(null);
     setIsCorrect(null);
     setShowResult(false);
-  }, [currentIndex, sessionWords, words]);
-
-  // Отмечаем, что тест начался, когда пользователь отвечает на первый вопрос
-  // Это происходит в handleAnswer, поэтому этот эффект не нужен
+  }, [currentIndex, sessionVerbs, verbs, questionType]);
 
   const handleAnswer = useCallback(
     async (answer: string) => {
-      if (sessionWords.length === 0) return;
+      if (sessionVerbs.length === 0) return;
 
-      const currentWord = sessionWords[currentIndex];
-      if (!currentWord || !currentWord.id) return;
+      const currentVerb = sessionVerbs[currentIndex];
+      if (!currentVerb || !currentVerb.id) return;
 
       // Отмечаем, что тест активен при первом ответе
       if (!isTestActiveRef.current) {
         isTestActiveRef.current = true;
       }
 
-      const correct = answer === currentWord.translation;
+      const correctAnswer = questionType === "pastSimple" 
+        ? currentVerb.pastSimple 
+        : currentVerb.pastParticiple;
+
+      const correct = answer === correctAnswer;
       setSelectedAnswer(answer);
       setIsCorrect(correct);
       setShowResult(true);
@@ -125,11 +145,11 @@ export default function TestPage() {
       }
 
       const now = Date.now();
-      let newBox = currentWord.box;
+      let newBox = currentVerb.box;
       let nextReview: number;
 
       if (correct) {
-        newBox = Math.min(currentWord.box + 1, 5);
+        newBox = Math.min(currentVerb.box + 1, 5);
         const intervals = [3600000, 86400000, 259200000, 604800000, 2592000000];
         nextReview = now + intervals[newBox - 1];
       } else {
@@ -137,7 +157,7 @@ export default function TestPage() {
         nextReview = now + 3600000;
       }
 
-      await updateWord(currentWord.id, {
+      await updateVerb(currentVerb.id, {
         box: newBox,
         nextReviewDate: nextReview,
       });
@@ -146,7 +166,8 @@ export default function TestPage() {
       setTimeout(() => {
         setCurrentIndex((prevIndex) => {
           const nextIndex = prevIndex + 1;
-          if (nextIndex < sessionWords.length) {
+          if (nextIndex < sessionVerbs.length) {
+            setQuestionType(Math.random() > 0.5 ? "pastSimple" : "pastParticiple");
             return nextIndex;
           } else {
             // Тест завершён, сбрасываем флаги
@@ -158,14 +179,14 @@ export default function TestPage() {
         });
       }, 1500);
     },
-    [currentIndex, sessionWords, updateWord, router]
+    [currentIndex, sessionVerbs, questionType, updateVerb, router]
   );
 
   const handleSpeak = () => {
-    if (sessionWords.length === 0) return;
-    const currentWord = sessionWords[currentIndex];
-    if (currentWord) {
-      tts.speak(currentWord.word, "en-US");
+    if (sessionVerbs.length === 0) return;
+    const currentVerb = sessionVerbs[currentIndex];
+    if (currentVerb) {
+      tts.speak(currentVerb.infinitive, "en-US");
     }
   };
 
@@ -173,25 +194,25 @@ export default function TestPage() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
-          <Loader size="lg" text="Загрузка слов..." />
+          <Loader size="lg" text="Загрузка глаголов..." />
         </div>
       </Layout>
     );
   }
 
-  if (sessionWords.length === 0) {
+  if (sessionVerbs.length === 0) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-screen px-4">
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold text-white">
-              Нет слов для теста
+              Нет глаголов для теста
             </h2>
             <p className="text-gray-400">
-              Добавьте слова, чтобы начать тестирование
+              Добавьте неправильные глаголы, чтобы начать тестирование
             </p>
-            <Link href="/add">
-              <Button variant="primary">Добавить слова</Button>
+            <Link href="/add-irregular-verbs">
+              <Button variant="primary">Добавить глаголы</Button>
             </Link>
           </div>
         </div>
@@ -199,11 +220,11 @@ export default function TestPage() {
     );
   }
 
-  const currentWord = sessionWords[currentIndex];
-  const progress = ((currentIndex + 1) / sessionWords.length) * 100;
+  const currentVerb = sessionVerbs[currentIndex];
+  const progress = ((currentIndex + 1) / sessionVerbs.length) * 100;
 
-  // Проверка на существование currentWord
-  if (!currentWord) {
+  // Проверка на существование currentVerb
+  if (!currentVerb) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -213,6 +234,11 @@ export default function TestPage() {
     );
   }
 
+  const questionLabel = questionType === "pastSimple" ? "Past Simple" : "Past Participle";
+  const correctAnswer = questionType === "pastSimple" 
+    ? currentVerb.pastSimple 
+    : currentVerb.pastParticiple;
+
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-8 px-4">
@@ -221,7 +247,7 @@ export default function TestPage() {
           <div className="mb-6">
             <div className="flex justify-between text-sm text-gray-400 mb-2">
               <span>
-                {currentIndex + 1} / {sessionWords.length}
+                {currentIndex + 1} / {sessionVerbs.length}
               </span>
               <span>{Math.round(progress)}%</span>
             </div>
@@ -240,44 +266,33 @@ export default function TestPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.3 }}
               className="bg-gray-800 rounded-lg shadow-xl p-8 mb-6"
             >
               <div className="text-center">
-                <div className="flex items-center justify-center gap-4 mb-6">
-                  <h2 className="text-4xl font-bold text-white">
-                    {currentWord.word}
-                  </h2>
-                  {tts.isAvailable() && (
-                    <button
-                      onClick={handleSpeak}
-                      className="p-2 rounded-full bg-indigo-900 hover:bg-indigo-800 transition-colors"
-                      aria-label="Озвучить слово"
-                    >
-                      🔊
-                    </button>
-                  )}
-                </div>
-                {currentWord.transcription && (
-                  <p className="text-lg text-indigo-300 mb-4">
-                    [{currentWord.transcription}]
-                  </p>
-                )}
-                {currentWord.tags.length > 0 && (
-                  <div className="flex flex-wrap justify-center gap-2 mb-4">
-                    {currentWord.tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded"
+                <div className="mb-4">
+                  <p className="text-sm text-gray-400 mb-2">Infinitive</p>
+                  <div className="flex items-center justify-center gap-4">
+                    <h2 className="text-4xl font-bold text-white">
+                      {currentVerb.infinitive}
+                    </h2>
+                    {tts.isAvailable() && (
+                      <button
+                        onClick={handleSpeak}
+                        className="p-2 rounded-full bg-indigo-900 hover:bg-indigo-800 transition-colors"
+                        aria-label="Озвучить"
                       >
-                        {tag}
-                      </span>
-                    ))}
+                        🔊
+                      </button>
+                    )}
                   </div>
-                )}
-                <p className="text-sm text-gray-400">
-                  Выберите правильный перевод
-                </p>
+                </div>
+                
+                <div className="pt-4 border-t border-gray-700">
+                  <p className="text-lg text-indigo-300 mb-4">
+                    Выберите правильную форму: <span className="font-semibold">{questionLabel}</span>
+                  </p>
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -287,7 +302,7 @@ export default function TestPage() {
             <AnimatePresence>
               {options.map((option, index) => {
                 const isSelected = selectedAnswer === option;
-                const isRightAnswer = option === currentWord.translation;
+                const isRightAnswer = option === correctAnswer;
                 let buttonVariant: "primary" | "secondary" | "danger" | "success" = "secondary";
 
                 if (showResult) {
@@ -303,12 +318,7 @@ export default function TestPage() {
                     key={`${currentIndex}-${index}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ 
-                      duration: 0.3, 
-                      delay: 0.3 + index * 0.05,
-                      ease: "easeInOut"
-                    }}
+                    transition={{ delay: index * 0.1 }}
                   >
                     <Button
                       variant={buttonVariant}
@@ -349,7 +359,7 @@ export default function TestPage() {
               </p>
               {!isCorrect && (
                 <p className="text-gray-400 mt-2">
-                  Правильный ответ: {currentWord.translation}
+                  Правильный ответ: <span className="font-semibold">{correctAnswer}</span>
                 </p>
               )}
             </motion.div>
