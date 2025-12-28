@@ -380,7 +380,7 @@ export default function TestPage() {
                 )}
               </div>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center items-center">
                 <Button
                   variant="primary"
                   size="lg"

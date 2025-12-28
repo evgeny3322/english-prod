@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Персональный словарь с системой интервальных повторений",
     start_url: "/",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#6366f1",
+    background_color: "#111827",
+    theme_color: "#111827",
     orientation: "portrait-primary",
     icons: [
       {

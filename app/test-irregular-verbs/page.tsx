@@ -390,12 +390,12 @@ export default function TestIrregularVerbsPage() {
                 )}
               </div>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center items-center">
                 <Button
                   variant="primary"
                   size="lg"
                   onClick={handleNext}
-                  className="min-w-[200px]"
+                  className="w-full sm:w-auto min-w-[200px]"
                 >
                   {currentIndex < sessionVerbs.length - 1 ? "Далее →" : "Завершить"}
                 </Button>

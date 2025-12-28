@@ -9,10 +9,10 @@ export const metadata: Metadata = {
   title: "LexiFlow - Изучение слов",
   description: "Персональный словарь с системой интервальных повторений",
   manifest: "/manifest.json",
-  themeColor: "#6366f1",
+  themeColor: "#111827",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "LexiFlow",
   },
 };

@@ -203,8 +203,8 @@ export default function StudyPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-8 px-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-4 sm:py-8 px-4 flex flex-col">
+        <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
           {/* Tag Filter */}
           <TagFilter
             words={words}
@@ -213,8 +213,8 @@ export default function StudyPage() {
           />
 
           {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="flex justify-between text-sm text-gray-400 mb-2">
+          <div className="mb-4 sm:mb-6">
+            <div className="flex justify-between text-xs sm:text-sm text-gray-400 mb-2">
               <span>
                 {currentIndex + 1} / {sessionWords.length}
               </span>
@@ -229,7 +229,7 @@ export default function StudyPage() {
           </div>
 
           {/* Flashcard */}
-          <div className="relative mb-6 sm:mb-8" style={{ perspective: "1000px" }}>
+          <div className="relative mb-4 sm:mb-6 flex-1 flex items-center justify-center" style={{ perspective: "1000px", minHeight: "min(400px, 50vh)" }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
@@ -238,7 +238,7 @@ export default function StudyPage() {
                 exit={{ opacity: 0, rotateY: 90 }}
                 transition={{ duration: 0.3 }}
                 className="relative w-full"
-                style={{ height: "min(400px, 60vh)", transformStyle: "preserve-3d" }}
+                style={{ height: "min(400px, 50vh)", transformStyle: "preserve-3d" }}
               >
                 <motion.div
                   ref={cardRef}
@@ -327,14 +327,14 @@ export default function StudyPage() {
             </AnimatePresence>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+          {/* Action Buttons - центрированы */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-4">
             <Button
               variant="danger"
               size="lg"
               onClick={() => handleAnswer(false)}
               disabled={isProcessing}
-              className="flex-1 max-w-xs w-full sm:w-auto"
+              className="w-full sm:w-auto min-w-[140px] sm:min-w-[160px]"
             >
               Не знаю
             </Button>
@@ -343,13 +343,13 @@ export default function StudyPage() {
               size="lg"
               onClick={() => handleAnswer(true)}
               disabled={isProcessing}
-              className="flex-1 max-w-xs w-full sm:w-auto"
+              className="w-full sm:w-auto min-w-[140px] sm:min-w-[160px]"
             >
               Знаю
             </Button>
           </div>
 
-          <p className="text-center text-xs sm:text-sm text-gray-400 mt-4 px-4">
+          <p className="text-center text-xs sm:text-sm text-gray-400 px-4">
             <span className="hidden sm:inline">Space - перевернуть | ← / 1 - Не знаю | → / 2 - Знаю | </span>Свайп влево/вправо
           </p>
         </div>
