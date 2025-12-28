@@ -8,6 +8,7 @@ import { parseText, parseCSV, validateWords, ParsedWord } from "@/lib/parser";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function AddPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function AddPage() {
   const [importText, setImportText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
@@ -37,6 +39,7 @@ export default function AddPage() {
       .map((t) => t.trim())
       .filter(Boolean);
 
+    setIsLoading(true);
     try {
       await addWord({
         word: word.trim(),
@@ -55,39 +58,42 @@ export default function AddPage() {
     } catch (error) {
       setErrors(["Ошибка при добавлении слова"]);
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleFileRead = async (file: File) => {
-    const text = await file.text();
-    const isCSV = file.name.endsWith(".csv");
-    const parsed = isCSV ? parseCSV(text) : parseText(text);
-    
-    if (parsed.length === 0) {
-      setErrors(["Не удалось распарсить файл. Проверьте формат."]);
-      return;
-    }
-
-    const { valid, duplicates, invalid } = validateWords(parsed, words);
-
-    if (valid.length === 0) {
-      setErrors([
-        "Нет новых слов для добавления",
-        duplicates.length > 0 ? `${duplicates.length} дубликатов` : "",
-        invalid.length > 0 ? `${invalid.length} невалидных записей` : "",
-      ].filter(Boolean));
-      return;
-    }
-
-    if (duplicates.length > 0 || invalid.length > 0) {
-      const warnings = [
-        duplicates.length > 0 ? `Найдено ${duplicates.length} дубликатов` : "",
-        invalid.length > 0 ? `Найдено ${invalid.length} невалидных записей` : "",
-      ].filter(Boolean);
-      setErrors(warnings);
-    }
-
+    setIsLoading(true);
     try {
+      const text = await file.text();
+      const isCSV = file.name.endsWith(".csv");
+      const parsed = isCSV ? parseCSV(text) : parseText(text);
+      
+      if (parsed.length === 0) {
+        setErrors(["Не удалось распарсить файл. Проверьте формат."]);
+        return;
+      }
+
+      const { valid, duplicates, invalid } = validateWords(parsed, words);
+
+      if (valid.length === 0) {
+        setErrors([
+          "Нет новых слов для добавления",
+          duplicates.length > 0 ? `${duplicates.length} дубликатов` : "",
+          invalid.length > 0 ? `${invalid.length} невалидных записей` : "",
+        ].filter(Boolean));
+        return;
+      }
+
+      if (duplicates.length > 0 || invalid.length > 0) {
+        const warnings = [
+          duplicates.length > 0 ? `Найдено ${duplicates.length} дубликатов` : "",
+          invalid.length > 0 ? `Найдено ${invalid.length} невалидных записей` : "",
+        ].filter(Boolean);
+        setErrors(warnings);
+      }
+
       const wordsToAdd = valid.map((w) => ({
         word: w.word,
         translation: w.translation,
@@ -103,6 +109,8 @@ export default function AddPage() {
     } catch (error) {
       setErrors(["Ошибка при добавлении слов"]);
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -143,33 +151,34 @@ export default function AddPage() {
       return;
     }
 
-    const parsed = parseText(importText);
-    
-    if (parsed.length === 0) {
-      setErrors(["Не удалось распарсить текст. Используйте формат: слово - перевод"]);
-      return;
-    }
-
-    const { valid, duplicates, invalid } = validateWords(parsed, words);
-
-    if (valid.length === 0) {
-      setErrors([
-        "Нет новых слов для добавления",
-        duplicates.length > 0 ? `${duplicates.length} дубликатов` : "",
-        invalid.length > 0 ? `${invalid.length} невалидных записей` : "",
-      ].filter(Boolean));
-      return;
-    }
-
-    if (duplicates.length > 0 || invalid.length > 0) {
-      const warnings = [
-        duplicates.length > 0 ? `Найдено ${duplicates.length} дубликатов` : "",
-        invalid.length > 0 ? `Найдено ${invalid.length} невалидных записей` : "",
-      ].filter(Boolean);
-      setErrors(warnings);
-    }
-
+    setIsLoading(true);
     try {
+      const parsed = parseText(importText);
+      
+      if (parsed.length === 0) {
+        setErrors(["Не удалось распарсить текст. Используйте формат: слово - перевод"]);
+        return;
+      }
+
+      const { valid, duplicates, invalid } = validateWords(parsed, words);
+
+      if (valid.length === 0) {
+        setErrors([
+          "Нет новых слов для добавления",
+          duplicates.length > 0 ? `${duplicates.length} дубликатов` : "",
+          invalid.length > 0 ? `${invalid.length} невалидных записей` : "",
+        ].filter(Boolean));
+        return;
+      }
+
+      if (duplicates.length > 0 || invalid.length > 0) {
+        const warnings = [
+          duplicates.length > 0 ? `Найдено ${duplicates.length} дубликатов` : "",
+          invalid.length > 0 ? `Найдено ${invalid.length} невалидных записей` : "",
+        ].filter(Boolean);
+        setErrors(warnings);
+      }
+
       const wordsToAdd = valid.map((w) => ({
         word: w.word,
         translation: w.translation,
@@ -185,27 +194,29 @@ export default function AddPage() {
     } catch (error) {
       setErrors(["Ошибка при добавлении слов"]);
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-4 sm:py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Link
             href="/welcome"
-            className="text-indigo-400 hover:text-indigo-300"
+            className="text-sm sm:text-base text-indigo-400 hover:text-indigo-300"
           >
             ← Назад
           </Link>
         </div>
 
-        <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-          <h1 className="text-2xl font-bold mb-6 text-white">
+        <div className="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+          <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white">
             Добавить слова
           </h1>
 
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
             <Button
               variant={mode === "manual" ? "primary" : "secondary"}
               onClick={() => setMode("manual")}
@@ -282,7 +293,7 @@ export default function AddPage() {
                 />
               </div>
 
-              <Button type="submit" variant="primary" className="w-full">
+              <Button type="submit" variant="primary" className="w-full" isLoading={isLoading}>
                 Добавить слово
               </Button>
             </form>
@@ -302,6 +313,7 @@ export default function AddPage() {
                   onClick={handleImportTextSubmit}
                   variant="primary"
                   className="w-full mt-4"
+                  isLoading={isLoading}
                 >
                   Импортировать
                 </Button>
@@ -323,15 +335,24 @@ export default function AddPage() {
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                   isDragging
                     ? "border-indigo-500 bg-indigo-900/20"
+                    : isLoading
+                    ? "border-gray-700 bg-gray-800/50"
                     : "border-gray-600"
                 }`}
               >
-                <p className="text-gray-400 mb-4">
-                  Перетащите файл .csv или .txt сюда
-                </p>
+                {isLoading ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Spinner size="md" />
+                    <p className="text-gray-400">Обработка файла...</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 mb-4">
+                    Перетащите файл .csv или .txt сюда
+                  </p>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"

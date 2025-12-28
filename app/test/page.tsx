@@ -22,6 +22,7 @@ export default function TestPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const isTestActiveRef = useRef(false);
   const sessionInitializedRef = useRef(false);
 
@@ -70,6 +71,9 @@ export default function TestPage() {
     const currentWord = sessionWords[currentIndex];
     if (!currentWord) return;
 
+    // Не пересоздаём варианты ответов, если уже показан результат
+    if (showResult) return;
+
     // Собираем все переводы кроме текущего
     const otherTranslations = words
       .filter((w) => w.id !== currentWord.id && w.translation !== currentWord.translation)
@@ -94,18 +98,22 @@ export default function TestPage() {
     setOptions(allOptions);
     setSelectedAnswer(null);
     setIsCorrect(null);
-    setShowResult(false);
-  }, [currentIndex, sessionWords, words]);
+    setIsProcessing(false);
+  }, [currentIndex, sessionWords, words, showResult]);
 
   // Отмечаем, что тест начался, когда пользователь отвечает на первый вопрос
   // Это происходит в handleAnswer, поэтому этот эффект не нужен
 
   const handleAnswer = useCallback(
     async (answer: string) => {
-      if (sessionWords.length === 0) return;
+      if (sessionWords.length === 0 || isProcessing) return;
 
       const currentWord = sessionWords[currentIndex];
       if (!currentWord || !currentWord.id) return;
+
+      // Блокируем кнопки сразу
+      setIsProcessing(true);
+      setSelectedAnswer(answer);
 
       // Отмечаем, что тест активен при первом ответе
       if (!isTestActiveRef.current) {
@@ -113,7 +121,6 @@ export default function TestPage() {
       }
 
       const correct = answer === currentWord.translation;
-      setSelectedAnswer(answer);
       setIsCorrect(correct);
       setShowResult(true);
 
@@ -141,25 +148,43 @@ export default function TestPage() {
         box: newBox,
         nextReviewDate: nextReview,
       });
-
-      // Переходим к следующему вопросу через 1.5 секунды
-      setTimeout(() => {
-        setCurrentIndex((prevIndex) => {
-          const nextIndex = prevIndex + 1;
-          if (nextIndex < sessionWords.length) {
-            return nextIndex;
-          } else {
-            // Тест завершён, сбрасываем флаги
-            isTestActiveRef.current = false;
-            sessionInitializedRef.current = false;
-            router.push("/welcome");
-            return prevIndex;
-          }
-        });
-      }, 1500);
     },
-    [currentIndex, sessionWords, updateWord, router]
+    [currentIndex, sessionWords, updateWord, isProcessing]
   );
+
+  const handleNext = useCallback(() => {
+    // Сбрасываем состояния перед переходом
+    setShowResult(false);
+    setSelectedAnswer(null);
+    setIsCorrect(null);
+    
+    setCurrentIndex((prevIndex) => {
+      const nextIndex = prevIndex + 1;
+      if (nextIndex < sessionWords.length) {
+        setIsProcessing(false);
+        return nextIndex;
+      } else {
+        // Тест завершён, сбрасываем флаги
+        isTestActiveRef.current = false;
+        sessionInitializedRef.current = false;
+        router.push("/welcome");
+        return prevIndex;
+      }
+    });
+  }, [sessionWords.length, router]);
+
+  // Обработка клавиатуры для перехода к следующему вопросу
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (showResult && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [showResult, handleNext]);
 
   const handleSpeak = () => {
     if (sessionWords.length === 0) return;
@@ -215,11 +240,11 @@ export default function TestPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-8 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-4 sm:py-8 px-4">
         <div className="max-w-2xl mx-auto">
           {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="flex justify-between text-sm text-gray-400 mb-2">
+          <div className="mb-4 sm:mb-6">
+            <div className="flex justify-between text-xs sm:text-sm text-gray-400 mb-2">
               <span>
                 {currentIndex + 1} / {sessionWords.length}
               </span>
@@ -241,11 +266,11 @@ export default function TestPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="bg-gray-800 rounded-lg shadow-xl p-8 mb-6"
+              className="bg-gray-800 rounded-lg shadow-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6"
             >
               <div className="text-center">
-                <div className="flex items-center justify-center gap-4 mb-6">
-                  <h2 className="text-4xl font-bold text-white">
+                <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white break-words">
                     {currentWord.word}
                   </h2>
                   {tts.isAvailable() && (
@@ -259,12 +284,12 @@ export default function TestPage() {
                   )}
                 </div>
                 {currentWord.transcription && (
-                  <p className="text-lg text-indigo-300 mb-4">
+                  <p className="text-sm sm:text-base md:text-lg text-indigo-300 mb-3 sm:mb-4">
                     [{currentWord.transcription}]
                   </p>
                 )}
                 {currentWord.tags.length > 0 && (
-                  <div className="flex flex-wrap justify-center gap-2 mb-4">
+                  <div className="flex flex-wrap justify-center gap-2 mb-3 sm:mb-4">
                     {currentWord.tags.map((tag, i) => (
                       <span
                         key={i}
@@ -275,7 +300,7 @@ export default function TestPage() {
                     ))}
                   </div>
                 )}
-                <p className="text-sm text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-400">
                   Выберите правильный перевод
                 </p>
               </div>
@@ -313,8 +338,8 @@ export default function TestPage() {
                     <Button
                       variant={buttonVariant}
                       size="lg"
-                      onClick={() => !showResult && handleAnswer(option)}
-                      disabled={showResult}
+                      onClick={() => !showResult && !isProcessing && handleAnswer(option)}
+                      disabled={showResult || isProcessing}
                       className={`w-full text-left justify-start ${
                         showResult && isRightAnswer
                           ? "ring-4 ring-green-700"
@@ -336,22 +361,40 @@ export default function TestPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-6 text-center"
+              className="mt-6 space-y-4"
             >
-              <p
-                className={`text-lg font-semibold ${
-                  isCorrect
-                    ? "text-green-400"
-                    : "text-red-400"
-                }`}
-              >
-                {isCorrect ? "✓ Правильно!" : "✗ Неправильно"}
-              </p>
-              {!isCorrect && (
-                <p className="text-gray-400 mt-2">
-                  Правильный ответ: {currentWord.translation}
+              <div className="text-center">
+                <p
+                  className={`text-lg font-semibold ${
+                    isCorrect
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {isCorrect ? "✓ Правильно!" : "✗ Неправильно"}
                 </p>
-              )}
+                {!isCorrect && (
+                  <p className="text-gray-400 mt-2">
+                    Правильный ответ: {currentWord.translation}
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex justify-center">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={handleNext}
+                  className="w-full sm:w-auto min-w-[200px]"
+                >
+                  {currentIndex < sessionWords.length - 1 ? "Далее →" : "Завершить"}
+                </Button>
+              </div>
+              
+              <p className="text-center text-xs sm:text-sm text-gray-500">
+                <span className="hidden sm:inline">Нажмите Enter или Пробел для продолжения</span>
+                <span className="sm:hidden">Нажмите Enter для продолжения</span>
+              </p>
             </motion.div>
           )}
         </div>

@@ -21,6 +21,7 @@ export default function IrregularVerbsPage() {
   const [sessionVerbs, setSessionVerbs] = useState<IrregularVerb[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState<"infinitive" | "pastSimple" | "pastParticiple">("infinitive");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Свайп-жесты для карточки
   const cardRef = useRef<HTMLDivElement>(null);
@@ -30,10 +31,13 @@ export default function IrregularVerbsPage() {
 
   const handleAnswer = useCallback(
     async (know: boolean) => {
-      if (sessionVerbs.length === 0) return;
+      if (sessionVerbs.length === 0 || isProcessing) return;
 
       const currentVerb = sessionVerbs[currentIndex];
       if (!currentVerb || !currentVerb.id) return;
+
+      // Блокируем кнопки сразу
+      setIsProcessing(true);
 
       // Воспроизводим звук
       if (know) {
@@ -64,11 +68,12 @@ export default function IrregularVerbsPage() {
         setCurrentIndex(currentIndex + 1);
         setIsFlipped(false);
         setShowForm("infinitive");
+        setIsProcessing(false);
       } else {
         router.push("/welcome");
       }
     },
-    [currentIndex, sessionVerbs, updateVerb, router]
+    [currentIndex, sessionVerbs, updateVerb, router, isProcessing]
   );
 
   const bind = useDrag(
@@ -113,6 +118,7 @@ export default function IrregularVerbsPage() {
     setCurrentIndex(0);
     setIsFlipped(false);
     setShowForm("infinitive");
+    setIsProcessing(false);
   }, [verbs, isLoading]);
 
   useEffect(() => {
@@ -200,7 +206,7 @@ export default function IrregularVerbsPage() {
           </div>
 
           {/* Flashcard */}
-          <div className="relative mb-8" style={{ perspective: "1000px" }}>
+          <div className="relative mb-6 sm:mb-8" style={{ perspective: "1000px" }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
@@ -209,7 +215,7 @@ export default function IrregularVerbsPage() {
                 exit={{ opacity: 0, rotateY: 90 }}
                 transition={{ duration: 0.3 }}
                 className="relative w-full"
-                style={{ height: "450px", transformStyle: "preserve-3d" }}
+                style={{ height: "min(450px, 65vh)", transformStyle: "preserve-3d" }}
               >
                 <motion.div
                   ref={cardRef}
@@ -227,18 +233,18 @@ export default function IrregularVerbsPage() {
                 >
                   {/* Лицевая сторона */}
                   <div
-                    className="absolute inset-0 bg-gray-800 rounded-lg shadow-xl flex items-center justify-center p-8 backface-hidden"
+                    className="absolute inset-0 bg-gray-800 rounded-lg shadow-xl flex items-center justify-center p-4 sm:p-6 md:p-8 backface-hidden"
                     style={{
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
                     }}
                   >
-                    <div className="text-center w-full">
-                      <p className="text-sm text-gray-400 mb-4">
+                    <div className="text-center w-full px-2">
+                      <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4">
                         {showForm === "infinitive" ? "Инфинитив" : showForm === "pastSimple" ? "Past Simple" : "Past Participle"}
                       </p>
-                      <div className="flex items-center justify-center gap-3 mb-4">
-                        <h2 className="text-4xl font-bold text-white">
+                      <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white break-words">
                           {showForm === "infinitive" 
                             ? currentVerb.infinitive 
                             : showForm === "pastSimple" 
@@ -258,13 +264,13 @@ export default function IrregularVerbsPage() {
                           </button>
                         )}
                       </div>
-                      <div className="flex gap-2 justify-center mt-6">
+                      <div className="flex gap-2 justify-center mt-4 sm:mt-6 flex-wrap">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowForm("infinitive");
                           }}
-                          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                          className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors ${
                             showForm === "infinitive" 
                               ? "bg-indigo-600 text-white" 
                               : "bg-gray-700 text-gray-300"
@@ -342,12 +348,13 @@ export default function IrregularVerbsPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Button
               variant="danger"
               size="lg"
               onClick={() => handleAnswer(false)}
-              className="flex-1 max-w-xs"
+              disabled={isProcessing}
+              className="flex-1 max-w-xs w-full sm:w-auto"
             >
               Не знаю
             </Button>
@@ -355,14 +362,15 @@ export default function IrregularVerbsPage() {
               variant="success"
               size="lg"
               onClick={() => handleAnswer(true)}
-              className="flex-1 max-w-xs"
+              disabled={isProcessing}
+              className="flex-1 max-w-xs w-full sm:w-auto"
             >
               Знаю
             </Button>
           </div>
 
-          <p className="text-center text-sm text-gray-400 mt-4">
-            Space - перевернуть | ← / 1 - Не знаю | → / 2 - Знаю | Свайп влево/вправо
+          <p className="text-center text-xs sm:text-sm text-gray-400 mt-4 px-4">
+            <span className="hidden sm:inline">Space - перевернуть | ← / 1 - Не знаю | → / 2 - Знаю | </span>Свайп влево/вправо
           </p>
         </div>
       </div>

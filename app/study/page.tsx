@@ -22,6 +22,7 @@ export default function StudyPage() {
   const [sessionWords, setSessionWords] = useState<Word[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Свайп-жесты для карточки - должны быть объявлены до любых условных return
   const cardRef = useRef<HTMLDivElement>(null);
@@ -31,10 +32,13 @@ export default function StudyPage() {
 
   const handleAnswer = useCallback(
     async (know: boolean) => {
-      if (sessionWords.length === 0) return;
+      if (sessionWords.length === 0 || isProcessing) return;
 
       const currentWord = sessionWords[currentIndex];
       if (!currentWord || !currentWord.id) return;
+
+      // Блокируем кнопки сразу
+      setIsProcessing(true);
 
       // Воспроизводим звук
       if (know) {
@@ -68,12 +72,13 @@ export default function StudyPage() {
       if (currentIndex < sessionWords.length - 1) {
         setCurrentIndex(currentIndex + 1);
         setIsFlipped(false);
+        setIsProcessing(false);
       } else {
         // Сессия завершена
         router.push("/welcome");
       }
     },
-    [currentIndex, sessionWords, updateWord, router]
+    [currentIndex, sessionWords, updateWord, router, isProcessing]
   );
 
   const bind = useDrag(
@@ -129,6 +134,7 @@ export default function StudyPage() {
     setSessionWords(filteredWords);
     setCurrentIndex(0);
     setIsFlipped(false);
+    setIsProcessing(false);
   }, [words, isLoading, selectedTags]);
 
   useEffect(() => {
@@ -223,7 +229,7 @@ export default function StudyPage() {
           </div>
 
           {/* Flashcard */}
-          <div className="relative mb-8" style={{ perspective: "1000px" }}>
+          <div className="relative mb-6 sm:mb-8" style={{ perspective: "1000px" }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
@@ -232,7 +238,7 @@ export default function StudyPage() {
                 exit={{ opacity: 0, rotateY: 90 }}
                 transition={{ duration: 0.3 }}
                 className="relative w-full"
-                style={{ height: "400px", transformStyle: "preserve-3d" }}
+                style={{ height: "min(400px, 60vh)", transformStyle: "preserve-3d" }}
               >
                 <motion.div
                   ref={cardRef}
@@ -250,18 +256,18 @@ export default function StudyPage() {
                 >
                   {/* Лицевая сторона */}
                   <div
-                    className="absolute inset-0 bg-gray-800 rounded-lg shadow-xl flex items-center justify-center p-8 backface-hidden"
+                    className="absolute inset-0 bg-gray-800 rounded-lg shadow-xl flex items-center justify-center p-4 sm:p-6 md:p-8 backface-hidden"
                     style={{
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
                     }}
                   >
-                    <div className="text-center">
-                      <p className="text-sm text-gray-400 mb-2">
+                    <div className="text-center w-full px-2">
+                      <p className="text-xs sm:text-sm text-gray-400 mb-2">
                         Слово
                       </p>
-                      <div className="flex items-center justify-center gap-3 mb-2">
-                        <h2 className="text-4xl font-bold text-white">
+                      <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white break-words">
                           {currentWord.word}
                         </h2>
                         {tts.isAvailable() && (
@@ -278,11 +284,11 @@ export default function StudyPage() {
                         )}
                       </div>
                       {currentWord.transcription && (
-                        <p className="text-lg text-indigo-300 mb-2">
+                        <p className="text-sm sm:text-base md:text-lg text-indigo-300 mb-2">
                           [{currentWord.transcription}]
                         </p>
                       )}
-                      <p className="text-sm text-gray-500 mt-4">
+                      <p className="text-xs sm:text-sm text-gray-500 mt-4">
                         Нажмите, чтобы перевернуть
                       </p>
                     </div>
@@ -290,16 +296,16 @@ export default function StudyPage() {
 
                   {/* Обратная сторона */}
                   <div
-                    className="absolute inset-0 bg-indigo-700 rounded-lg shadow-xl flex items-center justify-center p-8 backface-hidden"
+                    className="absolute inset-0 bg-indigo-700 rounded-lg shadow-xl flex items-center justify-center p-4 sm:p-6 md:p-8 backface-hidden"
                     style={{
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
                       transform: "rotateY(180deg)",
                     }}
                   >
-                    <div className="text-center">
-                      <p className="text-sm text-indigo-200 mb-2">Перевод</p>
-                      <h2 className="text-4xl font-bold text-white">
+                    <div className="text-center w-full px-2">
+                      <p className="text-xs sm:text-sm text-indigo-200 mb-2">Перевод</p>
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white break-words">
                         {currentWord.translation}
                       </h2>
                       {currentWord.tags.length > 0 && (
@@ -322,12 +328,13 @@ export default function StudyPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Button
               variant="danger"
               size="lg"
               onClick={() => handleAnswer(false)}
-              className="flex-1 max-w-xs"
+              disabled={isProcessing}
+              className="flex-1 max-w-xs w-full sm:w-auto"
             >
               Не знаю
             </Button>
@@ -335,14 +342,15 @@ export default function StudyPage() {
               variant="success"
               size="lg"
               onClick={() => handleAnswer(true)}
-              className="flex-1 max-w-xs"
+              disabled={isProcessing}
+              className="flex-1 max-w-xs w-full sm:w-auto"
             >
               Знаю
             </Button>
           </div>
 
-          <p className="text-center text-sm text-gray-400 mt-4">
-            Space - перевернуть | ← / 1 - Не знаю | → / 2 - Знаю | Свайп влево/вправо
+          <p className="text-center text-xs sm:text-sm text-gray-400 mt-4 px-4">
+            <span className="hidden sm:inline">Space - перевернуть | ← / 1 - Не знаю | → / 2 - Знаю | </span>Свайп влево/вправо
           </p>
         </div>
       </div>

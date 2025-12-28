@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useWordStore } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
 import { Layout } from "@/components/Layout";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function StatsPage() {
   const { words, loadWords, clearAll } = useWordStore();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     loadWords();
@@ -27,8 +29,13 @@ export default function StatsPage() {
 
   const handleClearAll = async () => {
     if (showConfirm) {
-      await clearAll();
-      setShowConfirm(false);
+      setIsClearing(true);
+      try {
+        await clearAll();
+        setShowConfirm(false);
+      } finally {
+        setIsClearing(false);
+      }
     } else {
       setShowConfirm(true);
     }
@@ -36,45 +43,45 @@ export default function StatsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-8 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-4 sm:py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8 text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-white">
             Статистика
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-gray-800 rounded-lg shadow p-6">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-400 mb-2">
                 Всего слов
               </h3>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-2xl sm:text-3xl font-bold text-white">
                 {words.length}
               </p>
             </div>
 
-            <div className="bg-gray-800 rounded-lg shadow p-6">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">
+            <div className="bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-400 mb-2">
                 Новые
               </h3>
-              <p className="text-3xl font-bold text-blue-400">
+              <p className="text-2xl sm:text-3xl font-bold text-blue-400">
                 {newWords}
               </p>
             </div>
 
-            <div className="bg-gray-800 rounded-lg shadow p-6">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">
+            <div className="bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-400 mb-2">
                 В процессе
               </h3>
-              <p className="text-3xl font-bold text-yellow-400">
+              <p className="text-2xl sm:text-3xl font-bold text-yellow-400">
                 {inProgress}
               </p>
             </div>
 
-            <div className="bg-gray-800 rounded-lg shadow p-6">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">
+            <div className="bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-400 mb-2">
                 Выучено
               </h3>
-              <p className="text-3xl font-bold text-green-400">
+              <p className="text-2xl sm:text-3xl font-bold text-green-400">
                 {learned}
               </p>
             </div>
@@ -116,10 +123,10 @@ export default function StatsPage() {
                   Вы уверены? Это действие нельзя отменить. Все ваши слова будут удалены.
                 </p>
                 <div className="flex gap-4">
-                  <Button variant="danger" onClick={handleClearAll}>
+                  <Button variant="danger" onClick={handleClearAll} isLoading={isClearing} disabled={isClearing}>
                     Да, удалить все
                   </Button>
-                  <Button variant="secondary" onClick={() => setShowConfirm(false)}>
+                  <Button variant="secondary" onClick={() => setShowConfirm(false)} disabled={isClearing}>
                     Отмена
                   </Button>
                 </div>

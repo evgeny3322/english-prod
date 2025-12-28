@@ -1,18 +1,23 @@
 import { ButtonHTMLAttributes, forwardRef } from "react";
 import { clsx } from "clsx";
+import { Spinner } from "./Spinner";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "danger" | "success";
   size?: "sm" | "md" | "lg";
+  isLoading?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", children, ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", children, isLoading, disabled, ...props }, ref) => {
+    const isDisabled = disabled || isLoading;
+    
     return (
       <button
         ref={ref}
+        disabled={isDisabled}
         className={clsx(
-          "font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2",
+          "font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center gap-2",
           {
             "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white focus:ring-indigo-500": variant === "primary",
             "bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:ring-gray-400": variant === "secondary",
@@ -21,11 +26,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             "py-1 px-3 text-sm": size === "sm",
             "py-2 px-4 text-base": size === "md",
             "py-3 px-6 text-lg": size === "lg",
+            "opacity-50 cursor-not-allowed": isDisabled,
           },
           className
         )}
         {...props}
       >
+        {isLoading && <Spinner size="sm" />}
         {children}
       </button>
     );
