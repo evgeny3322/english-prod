@@ -218,7 +218,7 @@ export default function TestIrregularVerbsPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
           <Loader size="lg" text="Загрузка глаголов..." />
         </div>
       </Layout>
@@ -252,7 +252,7 @@ export default function TestIrregularVerbsPage() {
   if (!currentVerb) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
           <Loader size="lg" text="Подготовка теста..." />
         </div>
       </Layout>
@@ -311,6 +311,11 @@ export default function TestIrregularVerbsPage() {
                       </button>
                     )}
                   </div>
+                  {currentVerb.transcription && (
+                    <p className="text-sm sm:text-base md:text-lg text-indigo-300 mt-2">
+                      [{currentVerb.transcription}]
+                    </p>
+                  )}
                 </div>
                 
                 <div className="pt-3 sm:pt-4 border-t border-gray-700">

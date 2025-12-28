@@ -5,36 +5,99 @@ export interface ParsedIrregularVerb {
   pastSimple: string;
   pastParticiple: string;
   translation: string;
+  transcription?: string;
 }
 
 /**
- * Парсит строку в формате "infinitive - pastSimple - pastParticiple - translation"
- * или "infinitive;pastSimple;pastParticiple;translation"
+ * Парсит строку в формате:
+ * - "infinitive - pastSimple - pastParticiple - translation [transcription]"
+ * - "infinitive - transcription - pastSimple - pastParticiple - translation"
+ * - "infinitive;pastSimple;pastParticiple;translation;transcription"
+ * - "infinitive;transcription;pastSimple;pastParticiple;translation"
  */
 export function parseIrregularVerbLine(line: string): ParsedIrregularVerb | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
 
-  // Пробуем разделитель " - "
-  let parts = trimmed.split(/\s*-\s*/);
-  if (parts.length >= 4) {
+  // Пробуем формат с транскрипцией в квадратных скобках: "infinitive - pastSimple - pastParticiple - translation [transcription]"
+  const bracketMatch = trimmed.match(/^(.+?)\s*-\s*(.+?)\s*-\s*(.+?)\s*-\s*(.+?)\s*\[(.+?)\]$/);
+  if (bracketMatch) {
     return {
-      infinitive: parts[0].trim(),
-      pastSimple: parts[1].trim(),
-      pastParticiple: parts[2].trim(),
-      translation: parts[3].trim(),
+      infinitive: bracketMatch[1].trim(),
+      pastSimple: bracketMatch[2].trim(),
+      pastParticiple: bracketMatch[3].trim(),
+      translation: bracketMatch[4].trim(),
+      transcription: bracketMatch[5].trim(),
     };
   }
 
-  // Пробуем разделитель ";"
-  parts = trimmed.split(";");
-  if (parts.length >= 4) {
+  // Пробуем разделитель " - " (4 или 5 частей)
+  let parts = trimmed.split(/\s*-\s*/);
+  if (parts.length === 4) {
+    // Стандартный формат без транскрипции
     return {
       infinitive: parts[0].trim(),
       pastSimple: parts[1].trim(),
       pastParticiple: parts[2].trim(),
       translation: parts[3].trim(),
     };
+  } else if (parts.length === 5) {
+    // Формат с транскрипцией: проверяем, где она находится
+    // Если вторая часть похожа на транскрипцию (содержит только русские буквы/символы), то это формат: infinitive - transcription - pastSimple - pastParticiple - translation
+    const secondPart = parts[1].trim();
+    const isTranscription = /^[а-яё\s\-]+$/i.test(secondPart);
+    
+    if (isTranscription) {
+      return {
+        infinitive: parts[0].trim(),
+        transcription: secondPart,
+        pastSimple: parts[2].trim(),
+        pastParticiple: parts[3].trim(),
+        translation: parts[4].trim(),
+      };
+    } else {
+      // Иначе транскрипция в конце: infinitive - pastSimple - pastParticiple - translation - transcription
+      return {
+        infinitive: parts[0].trim(),
+        pastSimple: parts[1].trim(),
+        pastParticiple: parts[2].trim(),
+        translation: parts[3].trim(),
+        transcription: parts[4].trim(),
+      };
+    }
+  }
+
+  // Пробуем разделитель ";" (4 или 5 частей)
+  parts = trimmed.split(";");
+  if (parts.length === 4) {
+    return {
+      infinitive: parts[0].trim(),
+      pastSimple: parts[1].trim(),
+      pastParticiple: parts[2].trim(),
+      translation: parts[3].trim(),
+    };
+  } else if (parts.length === 5) {
+    // Аналогично проверяем формат
+    const secondPart = parts[1].trim();
+    const isTranscription = /^[а-яё\s\-]+$/i.test(secondPart);
+    
+    if (isTranscription) {
+      return {
+        infinitive: parts[0].trim(),
+        transcription: secondPart,
+        pastSimple: parts[2].trim(),
+        pastParticiple: parts[3].trim(),
+        translation: parts[4].trim(),
+      };
+    } else {
+      return {
+        infinitive: parts[0].trim(),
+        pastSimple: parts[1].trim(),
+        pastParticiple: parts[2].trim(),
+        translation: parts[3].trim(),
+        transcription: parts[4].trim(),
+      };
+    }
   }
 
   return null;

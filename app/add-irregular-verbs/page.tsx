@@ -18,6 +18,7 @@ export default function AddIrregularVerbsPage() {
   const [pastSimple, setPastSimple] = useState("");
   const [pastParticiple, setPastParticiple] = useState("");
   const [translation, setTranslation] = useState("");
+  const [transcription, setTranscription] = useState("");
   const [importText, setImportText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -41,6 +42,7 @@ export default function AddIrregularVerbsPage() {
         pastSimple: pastSimple.trim(),
         pastParticiple: pastParticiple.trim(),
         translation: translation.trim(),
+        transcription: transcription.trim() || undefined,
         box: 1,
         nextReviewDate: Date.now(),
       });
@@ -49,6 +51,7 @@ export default function AddIrregularVerbsPage() {
       setPastSimple("");
       setPastParticiple("");
       setTranslation("");
+      setTranscription("");
       router.push("/welcome");
     } catch (error) {
       setErrors(["Ошибка при добавлении глагола"]);
@@ -93,6 +96,7 @@ export default function AddIrregularVerbsPage() {
         pastSimple: v.pastSimple,
         pastParticiple: v.pastParticiple,
         translation: v.translation,
+        transcription: v.transcription || undefined,
         box: 1,
         nextReviewDate: Date.now(),
       }));
@@ -152,7 +156,7 @@ export default function AddIrregularVerbsPage() {
       const parsed = parseIrregularVerbsText(importText);
       
       if (parsed.length === 0) {
-        setErrors(["Не удалось распарсить текст. Используйте формат: infinitive - pastSimple - pastParticiple - translation"]);
+        setErrors(["Не удалось распарсить текст. Используйте формат: infinitive - pastSimple - pastParticiple - translation [transcription]"]);
         return;
       }
 
@@ -180,6 +184,7 @@ export default function AddIrregularVerbsPage() {
         pastSimple: v.pastSimple,
         pastParticiple: v.pastParticiple,
         translation: v.translation,
+        transcription: v.transcription || undefined,
         box: 1,
         nextReviewDate: Date.now(),
       }));
@@ -288,6 +293,20 @@ export default function AddIrregularVerbsPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">
+                  Транскрипция (RU, опционально)
+                </label>
+                <Input
+                  value={transcription}
+                  onChange={(e) => setTranscription(e.target.value)}
+                  placeholder="гоу"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Произношение инфинитива на русском языке (например: &quot;гоу&quot; для &quot;go&quot;)
+                </p>
+              </div>
+
               <Button type="submit" variant="primary" className="w-full" isLoading={isLoading}>
                 Добавить глагол
               </Button>
@@ -296,7 +315,7 @@ export default function AddIrregularVerbsPage() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-300">
-                  Вставьте текст (формат: infinitive - pastSimple - pastParticiple - translation)
+                  Вставьте текст (формат: infinitive - pastSimple - pastParticiple - translation [transcription] или infinitive - transcription - pastSimple - pastParticiple - translation)
                 </label>
                 <Textarea
                   value={importText}

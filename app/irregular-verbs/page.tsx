@@ -155,7 +155,7 @@ export default function IrregularVerbsPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
           <Loader size="lg" text="Загрузка глаголов..." />
         </div>
       </Layout>
@@ -264,6 +264,11 @@ export default function IrregularVerbsPage() {
                           </button>
                         )}
                       </div>
+                      {showForm === "infinitive" && currentVerb.transcription && (
+                        <p className="text-sm sm:text-base md:text-lg text-indigo-300 mb-3 sm:mb-4">
+                          [{currentVerb.transcription}]
+                        </p>
+                      )}
                       <div className="flex gap-2 justify-center mt-4 sm:mt-6 flex-wrap">
                         <button
                           onClick={(e) => {

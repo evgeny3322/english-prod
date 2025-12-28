@@ -197,7 +197,7 @@ export default function TestPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
           <Loader size="lg" text="Загрузка слов..." />
         </div>
       </Layout>
@@ -231,7 +231,7 @@ export default function TestPage() {
   if (!currentWord) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
           <Loader size="lg" text="Подготовка теста..." />
         </div>
       </Layout>

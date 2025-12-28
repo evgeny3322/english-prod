@@ -28,7 +28,7 @@ export function Loader({ size = "md", text }: LoaderProps) {
         />
       </div>
       {text && (
-        <p className="text-gray-400 text-sm">{text}</p>
+        <p className="text-gray-300 text-sm">{text}</p>
       )}
     </div>
   );

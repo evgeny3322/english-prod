@@ -1,124 +1,94 @@
-be - was/were - been - быть
-go - went - gone - идти
-see - saw - seen - видеть
-take - took - taken - брать
-come - came - come - приходить
-get - got - got/gotten - получать
-give - gave - given - давать
-make - made - made - делать
-know - knew - known - знать
-think - thought - thought - думать
-say - said - said - говорить
-tell - told - told - рассказывать
-find - found - found - находить
-leave - left - left - уходить, покидать
-feel - felt - felt - чувствовать
-bring - brought - brought - приносить
-begin - began - begun - начинать
-keep - kept - kept - держать, сохранять
-hold - held - held - держать
-write - wrote - written - писать
-stand - stood - stood - стоять
-hear - heard - heard - слышать
-let - let - let - позволять
-mean - meant - meant - значить
-set - set - set - устанавливать
-meet - met - met - встречать
-run - ran - run - бежать
-pay - paid - paid - платить
-sit - sat - sat - сидеть
-speak - spoke - spoken - говорить
-lie - lay - lain - лежать
-lead - led - led - вести
-read - read - read - читать
-grow - grew - grown - расти
-lose - lost - lost - терять
-fall - fell - fallen - падать
-send - sent - sent - отправлять
-build - built - built - строить
-understand - understood - understood - понимать
-draw - drew - drawn - рисовать
-break - broke - broken - ломать
-spend - spent - spent - тратить
-cut - cut - cut - резать
-rise - rose - risen - подниматься
-drive - drove - driven - водить
-buy - bought - bought - покупать
-wear - wore - worn - носить
-choose - chose - chosen - выбирать
-seek - sought - sought - искать
-throw - threw - thrown - бросать
-catch - caught - caught - ловить
-deal - dealt - dealt - иметь дело
-win - won - won - побеждать
-forget - forgot - forgotten - забывать
-lay - laid - laid - класть
-strike - struck - struck - ударять
-hang - hung - hung - висеть
-shoot - shot - shot - стрелять
-teach - taught - taught - учить
-sell - sold - sold - продавать
-feed - fed - fed - кормить
-fight - fought - fought - бороться
-hide - hid - hidden - прятать
-hit - hit - hit - ударять
-hurt - hurt - hurt - причинять боль
-keep - kept - kept - хранить
-learn - learnt/learned - learnt/learned - учить
-lend - lent - lent - одалживать
-light - lit - lit - зажигать
-lose - lost - lost - терять
-make - made - made - делать
-meet - met - met - встречать
-pay - paid - paid - платить
-put - put - put - класть
-quit - quit - quit - бросать
-read - read - read - читать
-ride - rode - ridden - ехать
-ring - rang - rung - звонить
-rise - rose - risen - подниматься
-run - ran - run - бежать
-say - said - said - говорить
-see - saw - seen - видеть
-seek - sought - sought - искать
-sell - sold - sold - продавать
-send - sent - sent - отправлять
-set - set - set - устанавливать
-shake - shook - shaken - трясти
-shine - shone - shone - светить
-shoot - shot - shot - стрелять
-show - showed - shown - показывать
-shut - shut - shut - закрывать
-sing - sang - sung - петь
-sink - sank - sunk - тонуть
-sit - sat - sat - сидеть
-sleep - slept - slept - спать
-slide - slid - slid - скользить
-speak - spoke - spoken - говорить
-spend - spent - spent - тратить
-spin - spun - spun - крутить
-spread - spread - spread - распространять
-spring - sprang - sprung - прыгать
-stand - stood - stood - стоять
-steal - stole - stolen - красть
-stick - stuck - stuck - прилипать
-sting - stung - stung - жалить
-strike - struck - struck - ударять
-swear - swore - sworn - клясться
-sweep - swept - swept - подметать
-swim - swam - swum - плавать
-swing - swung - swung - качаться
-take - took - taken - брать
-teach - taught - taught - учить
-tear - tore - torn - рвать
-tell - told - told - рассказывать
-think - thought - thought - думать
-throw - threw - thrown - бросать
-understand - understood - understood - понимать
-wake - woke - woken - просыпаться
-wear - wore - worn - носить
-weep - wept - wept - плакать
-win - won - won - побеждать
-wind - wound - wound - заводить
-write - wrote - written - писать
-
+be - was/were - been - быть [би:]
+go - went - gone - идти [гоу]
+see - saw - seen - видеть [си:]
+take - took - taken - брать [тейк]
+come - came - come - приходить [кам]
+get - got - got/gotten - получать [гет]
+give - gave - given - давать [гив]
+make - made - made - делать [мейк]
+know - knew - known - знать [ноу]
+think - thought - thought - думать [синк]
+say - said - said - говорить [сей]
+tell - told - told - рассказывать [тел]
+find - found - found - находить [файнд]
+leave - left - left - уходить, покидать [ли:в]
+feel - felt - felt - чувствовать [фи:л]
+bring - brought - brought - приносить [брин]
+begin - began - begun - начинать [биˈгин]
+keep - kept - kept - держать, сохранять [ки:п]
+hold - held - held - держать [хоулд]
+write - wrote - written - писать [райт]
+stand - stood - stood - стоять [стэнд]
+hear - heard - heard - слышать [хиэ]
+let - let - let - позволять [лет]
+mean - meant - meant - значить [ми:н]
+set - set - set - устанавливать [сет]
+meet - met - met - встречать [ми:т]
+run - ran - run - бежать [ран]
+pay - paid - paid - платить [пей]
+sit - sat - sat - сидеть [сит]
+speak - spoke - spoken - говорить [спи:к]
+lie - lay - lain - лежать [лай]
+lead - led - led - вести [ли:д]
+read - read - read - читать [ри:д]
+grow - grew - grown - расти [гроу]
+lose - lost - lost - терять [лу:з]
+fall - fell - fallen - падать [фо:л]
+send - sent - sent - отправлять [сенд]
+build - built - built - строить [билд]
+understand - understood - understood - понимать [ˌандэˈстэнд]
+draw - drew - drawn - рисовать [дро:]
+break - broke - broken - ломать [брейк]
+spend - spent - spent - тратить [спенд]
+cut - cut - cut - резать [кат]
+rise - rose - risen - подниматься [райз]
+drive - drove - driven - водить [драйв]
+buy - bought - bought - покупать [бай]
+wear - wore - worn - носить [уэа]
+choose - chose - chosen - выбирать [чу:з]
+seek - sought - sought - искать [си:к]
+throw - threw - thrown - бросать [сроу]
+catch - caught - caught - ловить [кэч]
+deal - dealt - dealt - иметь дело [ди:л]
+win - won - won - побеждать [уин]
+forget - forgot - forgotten - забывать [фэˈгет]
+lay - laid - laid - класть [лей]
+strike - struck - struck - ударять [страйк]
+hang - hung - hung - висеть [хэнг]
+shoot - shot - shot - стрелять [шу:т]
+teach - taught - taught - учить [ти:ч]
+sell - sold - sold - продавать [сел]
+feed - fed - fed - кормить [фи:д]
+fight - fought - fought - бороться [файт]
+hide - hid - hidden - прятать [хайд]
+hit - hit - hit - ударять [хит]
+hurt - hurt - hurt - причинять боль [хё:т]
+learn - learnt/learned - learnt/learned - учить [лё:н]
+lend - lent - lent - одалживать [ленд]
+light - lit - lit - зажигать [лайт]
+put - put - put - класть [пут]
+quit - quit - quit - бросать [куит]
+ride - rode - ridden - ехать [райд]
+ring - rang - rung - звонить [рин]
+shake - shook - shaken - трясти [шейк]
+shine - shone - shone - светить [шайн]
+show - showed - shown - показывать [шоу]
+shut - shut - shut - закрывать [шат]
+sing - sang - sung - петь [син]
+sink - sank - sunk - тонуть [синк]
+sleep - slept - slept - спать [сли:п]
+slide - slid - slid - скользить [слайд]
+spin - spun - spun - крутить [спин]
+spread - spread - spread - распространять [спред]
+spring - sprang - sprung - прыгать [сприн]
+steal - stole - stolen - красть [сти:л]
+stick - stuck - stuck - прилипать [стик]
+sting - stung - stung - жалить [стин]
+swear - swore - sworn - клясться [суэа]
+sweep - swept - swept - подметать [суи:п]
+swim - swam - swum - плавать [суим]
+swing - swung - swung - качаться [суин]
+tear - tore - torn - рвать [тэа]
+wake - woke - woken - просыпаться [уейк]
+weep - wept - wept - плакать [уи:п]
+wind - wound - wound - заводить [уайнд]

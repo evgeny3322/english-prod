@@ -2,79 +2,91 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useWordStore } from "@/lib/store";
 import { useIrregularVerbStore } from "@/lib/irregularVerbsStore";
 import { getDefaultWords } from "@/lib/defaultWords";
 import { getDefaultIrregularVerbs } from "@/lib/defaultIrregularVerbs";
 import { validateWords } from "@/lib/parser";
 import { validateIrregularVerbs } from "@/lib/irregularVerbsParser";
-import { Button } from "@/components/ui/Button";
 
 export default function WelcomePage() {
   const router = useRouter();
   const { words, loadWords, addWords } = useWordStore();
   const { verbs, loadVerbs, addVerbs } = useIrregularVerbStore();
-  const [isLoadingDefaults, setIsLoadingDefaults] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
-    loadWords();
-    loadVerbs();
-  }, [loadWords, loadVerbs]);
+    const initializeData = async () => {
+      await loadWords();
+      await loadVerbs();
+      
+      // Получаем актуальные данные после загрузки
+      const currentWords = useWordStore.getState().words;
+      const currentVerbs = useIrregularVerbStore.getState().verbs;
+      
+      // Автоматически загружаем слова, если их нет
+      if (currentWords.length === 0) {
+        try {
+          const defaultWords = await getDefaultWords();
+          const { valid } = validateWords(defaultWords, currentWords);
+          
+          if (valid.length > 0) {
+            const wordsToAdd = valid.map((w) => ({
+              word: w.word,
+              translation: w.translation,
+              transcription: w.transcription,
+              tags: w.tags,
+              box: 1,
+              nextReviewDate: Date.now(),
+            }));
+            
+            await addWords(wordsToAdd);
+            await loadWords();
+          }
+        } catch (error) {
+          console.error("Ошибка загрузки предустановленных слов:", error);
+        }
+      }
+      
+      // Автоматически загружаем глаголы, если их нет
+      if (currentVerbs.length === 0) {
+        try {
+          const defaultVerbs = await getDefaultIrregularVerbs();
+          const { valid } = validateIrregularVerbs(defaultVerbs, currentVerbs);
+          
+          if (valid.length > 0) {
+            const verbsToAdd = valid.map((v) => ({
+              infinitive: v.infinitive,
+              pastSimple: v.pastSimple,
+              pastParticiple: v.pastParticiple,
+              translation: v.translation,
+              transcription: v.transcription,
+              box: 1,
+              nextReviewDate: Date.now(),
+            }));
+            
+            await addVerbs(verbsToAdd);
+            await loadVerbs();
+          }
+        } catch (error) {
+          console.error("Ошибка загрузки предустановленных глаголов:", error);
+        }
+      }
+      
+      setIsInitializing(false);
+    };
+    
+    initializeData();
+  }, [loadWords, loadVerbs, addWords, addVerbs]);
 
   const hasWords = words.length > 0;
   const hasVerbs = verbs.length > 0;
 
-  const handleLoadDefaults = async () => {
-    setIsLoadingDefaults(true);
-    try {
-      const defaultWords = await getDefaultWords();
-      const { valid } = validateWords(defaultWords, words);
-      
-      if (valid.length > 0) {
-        const wordsToAdd = valid.map((w) => ({
-          word: w.word,
-          translation: w.translation,
-          transcription: w.transcription,
-          tags: w.tags,
-          box: 1,
-          nextReviewDate: Date.now(),
-        }));
-        
-        await addWords(wordsToAdd);
-        await loadWords();
-      }
-    } catch (error) {
-      console.error("Ошибка загрузки предустановленных слов:", error);
-    } finally {
-      setIsLoadingDefaults(false);
-    }
-  };
-
-  const handleLoadDefaultVerbs = async () => {
-    setIsLoadingDefaults(true);
-    try {
-      const defaultVerbs = await getDefaultIrregularVerbs();
-      const { valid } = validateIrregularVerbs(defaultVerbs, verbs);
-      
-      if (valid.length > 0) {
-        const verbsToAdd = valid.map((v) => ({
-          infinitive: v.infinitive,
-          pastSimple: v.pastSimple,
-          pastParticiple: v.pastParticiple,
-          translation: v.translation,
-          box: 1,
-          nextReviewDate: Date.now(),
-        }));
-        
-        await addVerbs(verbsToAdd);
-        await loadVerbs();
-      }
-    } catch (error) {
-      console.error("Ошибка загрузки предустановленных глаголов:", error);
-    } finally {
-      setIsLoadingDefaults(false);
-    }
+  const handleNavigation = (href: string) => {
+    if (isNavigating || isInitializing) return;
+    setIsNavigating(true);
+    router.push(href);
   };
 
   return (
@@ -127,39 +139,45 @@ export default function WelcomePage() {
               <h2 className="text-lg sm:text-xl font-bold text-white">Слова</h2>
             </div>
             <div className="space-y-2">
-              {!hasWords ? (
-                <Button
-                  onClick={handleLoadDefaults}
-                  disabled={isLoadingDefaults}
-                  variant="primary"
-                  size="md"
-                  className="w-full"
-                  isLoading={isLoadingDefaults}
-                >
-                  Загрузить слова
-                </Button>
+              {isInitializing ? (
+                <div className="w-full bg-gray-700/50 text-white font-medium py-3 px-4 rounded-lg text-center text-sm">
+                  Загрузка...
+                </div>
               ) : (
                 <>
-                  <Link
-                    href="/study"
-                    className="block w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-lg text-center"
+                  <button
+                    onClick={() => handleNavigation("/study")}
+                    disabled={isNavigating || isInitializing}
+                    className={`block w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-lg text-center ${
+                      isNavigating || isInitializing
+                        ? "opacity-50 cursor-not-allowed pointer-events-none"
+                        : ""
+                    }`}
                   >
                     ✨ Изучать
-                  </Link>
-                  <Link
-                    href="/add"
-                    className="block w-full bg-indigo-600/80 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center text-sm"
+                  </button>
+                  <button
+                    onClick={() => handleNavigation("/add")}
+                    disabled={isNavigating || isInitializing}
+                    className={`block w-full bg-indigo-600/80 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center text-sm ${
+                      isNavigating || isInitializing
+                        ? "opacity-50 cursor-not-allowed pointer-events-none"
+                        : ""
+                    }`}
                   >
                     + Добавить слова
-                  </Link>
-                  {hasWords && (
-                    <Link
-                      href="/test"
-                      className="block w-full bg-purple-600/80 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center text-sm"
-                    >
-                      🧪 Тест
-                    </Link>
-                  )}
+                  </button>
+                  <button
+                    onClick={() => handleNavigation("/test")}
+                    disabled={isNavigating || isInitializing}
+                    className={`block w-full bg-purple-600/80 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center text-sm ${
+                      isNavigating || isInitializing
+                        ? "opacity-50 cursor-not-allowed pointer-events-none"
+                        : ""
+                    }`}
+                  >
+                    🧪 Тест
+                  </button>
                 </>
               )}
             </div>
@@ -172,39 +190,45 @@ export default function WelcomePage() {
               <h2 className="text-lg sm:text-xl font-bold text-white">Глаголы</h2>
             </div>
             <div className="space-y-2">
-              {!hasVerbs ? (
-                <Button
-                  onClick={handleLoadDefaultVerbs}
-                  disabled={isLoadingDefaults}
-                  variant="primary"
-                  size="md"
-                  className="w-full"
-                  isLoading={isLoadingDefaults}
-                >
-                  Загрузить глаголы
-                </Button>
+              {isInitializing ? (
+                <div className="w-full bg-gray-700/50 text-white font-medium py-3 px-4 rounded-lg text-center text-sm">
+                  Загрузка...
+                </div>
               ) : (
                 <>
-                  <Link
-                    href="/irregular-verbs"
-                    className="block w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-lg text-center"
+                  <button
+                    onClick={() => handleNavigation("/irregular-verbs")}
+                    disabled={isNavigating || isInitializing}
+                    className={`block w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-lg text-center ${
+                      isNavigating || isInitializing
+                        ? "opacity-50 cursor-not-allowed pointer-events-none"
+                        : ""
+                    }`}
                   >
                     ✨ Изучать
-                  </Link>
-                  <Link
-                    href="/add-irregular-verbs"
-                    className="block w-full bg-indigo-600/80 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center text-sm"
+                  </button>
+                  <button
+                    onClick={() => handleNavigation("/add-irregular-verbs")}
+                    disabled={isNavigating || isInitializing}
+                    className={`block w-full bg-indigo-600/80 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center text-sm ${
+                      isNavigating || isInitializing
+                        ? "opacity-50 cursor-not-allowed pointer-events-none"
+                        : ""
+                    }`}
                   >
                     + Добавить глаголы
-                  </Link>
-                  {hasVerbs && (
-                    <Link
-                      href="/test-irregular-verbs"
-                      className="block w-full bg-purple-600/80 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center text-sm"
-                    >
-                      🧪 Тест
-                    </Link>
-                  )}
+                  </button>
+                  <button
+                    onClick={() => handleNavigation("/test-irregular-verbs")}
+                    disabled={isNavigating || isInitializing}
+                    className={`block w-full bg-purple-600/80 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center text-sm ${
+                      isNavigating || isInitializing
+                        ? "opacity-50 cursor-not-allowed pointer-events-none"
+                        : ""
+                    }`}
+                  >
+                    🧪 Тест
+                  </button>
                 </>
               )}
             </div>
@@ -217,12 +241,17 @@ export default function WelcomePage() {
               <h2 className="text-lg sm:text-xl font-bold text-white">Статистика</h2>
             </div>
             <div className="space-y-2">
-              <Link
-                href="/stats"
-                className="block w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-lg text-center"
+              <button
+                onClick={() => handleNavigation("/stats")}
+                disabled={isNavigating || isInitializing}
+                className={`block w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-lg text-center ${
+                  isNavigating || isInitializing
+                    ? "opacity-50 cursor-not-allowed pointer-events-none"
+                    : ""
+                }`}
               >
                 📈 Просмотр статистики
-              </Link>
+              </button>
               <div className="text-xs text-gray-400 pt-2 text-center">
                 Прогресс обучения
               </div>

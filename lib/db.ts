@@ -18,6 +18,7 @@ export interface IrregularVerb {
   pastSimple: string; // Past Simple (went)
   pastParticiple: string; // Past Participle (gone)
   translation: string; // Перевод
+  transcription?: string; // Транскрипция на русском (например: "гоу")
   box: number; // 1-5 для системы Leitner
   nextReviewDate: number; // timestamp
   createdAt: number; // timestamp
@@ -30,15 +31,23 @@ export class LexiFlowDB extends Dexie {
 
   constructor() {
     super("LexiFlowDB");
-    this.version(3).stores({
+    this.version(4).stores({
       words: "++id, word, translation, box, nextReviewDate, createdAt",
       irregularVerbs: "++id, infinitive, box, nextReviewDate, createdAt",
     }).upgrade((tx) => {
-      // Миграция v2: добавляем поле transcription для существующих записей
+      // Миграция v2: добавляем поле transcription для существующих записей words
       if (tx.table("words")) {
-        return tx.table("words").toCollection().modify((word) => {
+        tx.table("words").toCollection().modify((word) => {
           if (!word.transcription) {
             word.transcription = "";
+          }
+        });
+      }
+      // Миграция v4: добавляем поле transcription для существующих записей irregularVerbs
+      if (tx.table("irregularVerbs")) {
+        tx.table("irregularVerbs").toCollection().modify((verb) => {
+          if (!verb.transcription) {
+            verb.transcription = "";
           }
         });
       }
